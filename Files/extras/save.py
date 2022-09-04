@@ -1,9 +1,9 @@
 health = 100
 max_health = 100
-strength = 107
-defense = 116
-gold = 990070.0
-armour = 100 
-weapon = 100 
-xp = 700 
+strength = 1
+defense = 1
+gold = 0
+armour = 0 
+weapon = 0 
+xp = 0 
 skillpoints = 0 
