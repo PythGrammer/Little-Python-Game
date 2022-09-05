@@ -1,9 +1,12 @@
+# Outside
 import sys
 import time
 import random
 
+# Files
 import extras.save
 import extras.skills
+import extras.storage
 import extras.enemies.tier1
 import extras.enemies.tier2
 import extras.enemies.tier3
@@ -24,7 +27,9 @@ xp = file.xp
 skillpoints = file.skillpoints
 w = skillz.w
 a = skillz.a
-playing = True
+x = None
+x2 = 0
+storage_ = extras.storage.storage
 
 # Enemies and their vars
 enemy_t1 = extras.enemies.tier1
@@ -34,6 +39,8 @@ enemy_t4 = extras.enemies.tier4
 enemy_t5 = extras.enemies.tier5
 
 # Functions
+
+# Combat System
 def Fight(enemy,ph,pmh,ps,pd,pg,pa,pw,px):
     e_health = enemy.e_health
     e_strength = enemy.e_strength
@@ -130,22 +137,9 @@ def Fight(enemy,ph,pmh,ps,pd,pg,pa,pw,px):
                 print("Not a valid option! Sending back to lobby...")
         else:
             print("You didnt drop any armour")
-    global end_pg
-    end_pg = pg
-    global end_w
-    end_w = pw
-    global end_a
-    end_a = pa
-    global end_s
-    end_s = ps
-    global end_d
-    end_d = pd
-    global end_h
-    end_h = ph
-    global end_x
-    end_x = px
+    return [pg, pw, pa, ps, pd, ph, px]
 
-
+# Skill System
 def SkillAdd(psp,a,w,ps,pd):
     user_wanted_skill = input("What skill do you want to skill? (A,W) ---> ")
     if(user_wanted_skill == "W"):
@@ -176,20 +170,54 @@ def SkillAdd(psp,a,w,ps,pd):
             print("You dont have enough skillpoints to skill Skills!")
     else:
         print("Wrong Input ---> " + user_wanted_skill)
+    return [a, w, ps, pd, psp]
 
-    global end_a_2
-    end_a_2 = a
-    global end_w_2
-    end_w_2 = w
-    global end_s_2
-    end_s_2 = ps
-    global end_d_2
-    end_d_2 = pd
-    global end_sp
-    end_sp = psp
-
-
-
+# Storage System
+def stor(pa, pw, ps, pd, action: str, item: str, _storage = extras.storage.storage, _a_storage = extras.storage.storage[0], _w_storage = extras.storage.storage[1], i = x2):
+    if(action == "store"):
+        if(item == "armour"):
+            if(pa == None or pa == 0):
+                print("You dont have any armour right now.")
+            else:
+                _a_storage.insert(len(_a_storage),pa)
+                pd = pd - pa
+                pa = 0
+        elif(item == "weapon"):
+            if(pw == None or pw == 0):
+                print("You dont have a weapon right now.")
+            else:
+                _w_storage.insert(len(_w_storage),pw)
+                ps = ps - pw
+                pw = 0
+    elif(action == "take"):
+        if(_a_storage == [] and _w_storage == []):
+            print("You dont have anything in storage")
+        else:
+            if(item == "weapon"):
+                if(pw == 0):
+                    while i < len(_w_storage):
+                        i = i + 1
+                        print(str(i-1) + " = " + str(_w_storage[i-1]))
+                    user = int(input("What do you want to take? ---> "))
+                    pw = _w_storage[user]
+                    _w_storage.remove(_w_storage[user])
+                    ps = ps + pw
+                else:
+                    print("Sorry, but you already have a weapon!")
+            elif(item == "armour"):
+                if(pa == 0):
+                    while i < len(_a_storage):
+                        i = i + 1
+                        print(str(i-1) + " = " + str(_a_storage[i-1]))
+                    user = int(input("What do you want to take? ---> "))
+                    pa = _a_storage[user]
+                    _a_storage.remove(_a_storage[user])
+                    pd = pd + pa
+                else:
+                    print("Sorry, but you already have armour!")
+    else:
+        print("Wrong Input ---> " + str(action))
+    return [_storage, pa, pw, pd, ps]
 
 
 
@@ -211,14 +239,15 @@ while(True):
         skillpoints = skillpoints + 1
         print("You just leveled up and gained a skillpoint! You have " + str(skillpoints) + " in total!")
 
-    user_action = input("What do you want to do? (exit,fight,stats,shop,skills,about) ---> ")
+    user_action = input("What do you want to do? (exit,fight,stats,shop,skills,about,storage,log) ---> ")
     # Exit and save
     if(user_action == "exit"):
-        playing = False
         file_open = open(file="extras\\save.py",mode="w")
         skillz_open = open(file="extras\\skills.py",mode="w")
+        storage_open = open(file="extras\\storage.py",mode="w")
         file_open.write("health = " + str(health) + "\n" + "max_health = " + str(max_health) + "\n" + "strength = " + str(strength) + "\n" + "defense = " + str(defense) + "\n" + "gold = " + str(gold) + "\n" + "armour = " + str(str(armour)) + " " + "\n" + "weapon = " + str(str(weapon)) + " " + "\n" + "xp = " + str(xp) + " " + "\n" + "skillpoints = " + str(skillpoints) + " " + "\n")
         skillz_open.write("a = " + str(a) + " " + "\n" + "w = " + str(w) + " " + "\n")
+        storage_open.write("a_storage = " + str(storage_[0]) + "\nw_storage = " + str(storage_[1]) + "\nstorage = " + str([storage_[0],storage_[1]]) + "\n")
         sys.exit()
     elif(user_action == "stats"):
         print("health = " + str(health) + "\n" + "max_health = " + str(max_health) + "\n" + "strength = " + str(strength) + "\n" + "defense = " + str(defense) + "\n" + "gold = " + str(gold) + "g\n" + "armour = " + str(armour) + " " + "\n" + "weapon = " + str(weapon) + " " + "\n" + "xp = " + str(xp) + " " + "\n" + "skillpoints = " + str(skillpoints) + " " + "\n")
@@ -226,50 +255,50 @@ while(True):
     elif(user_action == "fight"):
         user_wanted_fight = input("What tier do you want to fight? (1,2,3,4,5) ---> ")
         if(user_wanted_fight == "1"):
-            Fight(enemy=enemy_t1,ph=health,pmh=max_health,ps=strength,pd=defense,pg=gold,pa=armour,pw=weapon,px=xp)
-            gold = end_pg
-            weapon = end_w
-            armour = end_a
-            strength = end_s
-            defense = end_d
-            health = end_h
-            xp = end_x
+            x = Fight(enemy=enemy_t1,ph=health,pmh=max_health,ps=strength,pd=defense,pg=gold,pa=armour,pw=weapon,px=xp)
+            gold = x[0]
+            weapon = x[1]
+            armour = x[2]
+            strength = x[3]
+            defense = x[4]
+            health = x[5]
+            xp = x[6]
         elif(user_wanted_fight == "2"):
-            Fight(enemy=enemy_t2,ph=health,pmh=max_health,ps=strength,pd=defense,pg=gold,pa=armour,pw=weapon,px=xp)
-            gold = end_pg
-            weapon = end_w
-            armour = end_a
-            strength = end_s
-            defense = end_d
-            health = end_h
-            xp = end_x
+            x = Fight(enemy=enemy_t2,ph=health,pmh=max_health,ps=strength,pd=defense,pg=gold,pa=armour,pw=weapon,px=xp)
+            gold = x[0]
+            weapon = x[1]
+            armour = x[2]
+            strength = x[3]
+            defense = x[4]
+            health = x[5]
+            xp = x[6]
         elif(user_wanted_fight == "3"):
-            Fight(enemy=enemy_t3,ph=health,pmh=max_health,ps=strength,pd=defense,pg=gold,pa=armour,pw=weapon,px=xp)
-            gold = end_pg
-            weapon = end_w
-            armour = end_a
-            strength = end_s
-            defense = end_d
-            health = end_h
-            xp = end_x
-        elif (user_wanted_fight == "4"):
-            Fight(enemy=enemy_t4, ph=health, pmh=max_health, ps=strength, pd=defense, pg=gold, pa=armour, pw=weapon,px=xp)
-            gold = end_pg
-            weapon = end_w
-            armour = end_a
-            strength = end_s
-            defense = end_d
-            health = end_h
-            xp = end_x
-        elif (user_wanted_fight == "5"):
-            Fight(enemy=enemy_t5, ph=health, pmh=max_health, ps=strength, pd=defense, pg=gold, pa=armour, pw=weapon,px=xp)
-            gold = end_pg
-            weapon = end_w
-            armour = end_a
-            strength = end_s
-            defense = end_d
-            health = end_h
-            xp = end_x
+            x = Fight(enemy=enemy_t3,ph=health,pmh=max_health,ps=strength,pd=defense,pg=gold,pa=armour,pw=weapon,px=xp)
+            gold = x[0]
+            weapon = x[1]
+            armour = x[2]
+            strength = x[3]
+            defense = x[4]
+            health = x[5]
+            xp = x[6]
+        elif(user_wanted_fight == "4"):
+            x = Fight(enemy=enemy_t4, ph=health, pmh=max_health, ps=strength, pd=defense, pg=gold, pa=armour, pw=weapon,px=xp)
+            gold = x[0]
+            weapon = x[1]
+            armour = x[2]
+            strength = x[3]
+            defense = x[4]
+            health = x[5]
+            xp = x[6]
+        elif(user_wanted_fight == "5"):
+            x = Fight(enemy=enemy_t5, ph=health, pmh=max_health, ps=strength, pd=defense, pg=gold, pa=armour, pw=weapon,px=xp)
+            gold = x[0]
+            weapon = x[1]
+            armour = x[2]
+            strength = x[3]
+            defense = x[4]
+            health = x[5]
+            xp = x[6]
 
 
 
@@ -419,18 +448,51 @@ while(True):
             print("Wrong Input! ---> " + user_wanted_buy)
 
     elif(user_action == "skills"):
-        SkillAdd(psp=skillpoints,a=a,w=w,ps=strength,pd=defense)
-        strength = end_s_2
-        defense = end_d_2
-        skillpoints = end_sp
-        a = end_a_2
-        w = end_w_2
+        x = SkillAdd(psp=skillpoints,a=a,w=w,ps=strength,pd=defense)
+        strength = x[2]
+        defense = x[3]
+        skillpoints = x[4]
+        a = x[0]
+        w = x[1]
 
     elif(user_action == "about"):
         print("Game was made by me!")
         print("Follow my yt if you want!")
         print("https://www.youtube.com/channel/UCME-adZK2Rqb4mToqqSqApQ")
-        print("Version: 1.0")
-
+        print("Version: 1.1")
+    elif(user_action == "storage"):
+        user_wanted_storage = input("What do you want to do? (store weapon, store armour, take weapon, take armour) -> ")
+        if(user_wanted_storage == "store weapon"):
+            x = stor(pa=armour,pw=weapon,ps=strength,pd=defense,action="store",item="weapon")
+            storage_ = x[0]
+            armour = x[1]
+            weapon = x[2]
+            defense = x[3]
+            strength = x[4]
+        elif(user_wanted_storage == "store armour"):
+            x = stor(pa=armour, pw=weapon, ps=strength, pd=defense, action="store", item="armour")
+            storage_ = x[0]
+            armour = x[1]
+            weapon = x[2]
+            defense = x[3]
+            strength = x[4]
+        elif(user_wanted_storage == "take weapon"):
+            x = stor(pa=armour, pw=weapon, ps=strength, pd=defense, action="take", item="weapon")
+            storage_ = x[0]
+            armour = x[1]
+            weapon = x[2]
+            defense = x[3]
+            strength = x[4]
+        elif(user_wanted_storage == "take armour"):
+            x = stor(pa=armour, pw=weapon, ps=strength, pd=defense, action="store", item="armour")
+            storage_ = x[0]
+            armour = x[1]
+            weapon = x[2]
+            defense = x[3]
+            strength = x[4]
+        else:
+            print("Wrong Input ---> " + str(user_wanted_storage))
+    elif (user_action == "log"):
+        print("1.0: First Version of the game \n1.1: Added Storage funtion and this log")
     else:
         print("Wrong Input: " + user_action)
